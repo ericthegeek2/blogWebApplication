@@ -1,9 +1,28 @@
 const express = require('express')
+const cors = require('cors')
+
+const userRoute = require('./routes/userRoute')
+const postRoute = require('./routes/postRoute')
+const {notFound,errorHandler} = require('./middlewares/errorWares/errorMiddlewares')
+
+
+
 const app = express()
+
+app.use(express.json({extended: true}))
+
+app.use(express.urlencoded({extended: true}))
+
+app.use(cors({credentials: true, origin: 'http://localhost:'}))
+
 const port = 3000
 
-app.get('/', (req, res) => res.send('Hello World!'))
+app.use('/api/users', userRoute)
+app.use('/api/posts', postRoute)
 
-app.get('/api', (req,res) => res.json({status: 'ok'}))
+app.use(notFound)
+app.use(errorHandler)
+
+
 
 app.listen(port, () => console.log(`Example app listening on port ${port}!`))
