@@ -20,13 +20,13 @@ const createPost = async (req,res,next) =>{
 
     
 
-    console.log(title,category,description)
+    
 
     if ( !title || !category || !description) {
         return next(new HttpError('please fill all post fields', 422))
     }
 
-    console.log(req.file)
+    
 
     /*
     {
