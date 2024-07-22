@@ -1,4 +1,4 @@
-const schemaChecker = {
+const SchemaChecker = {
       name: {
         notEmpty: true,
         isLength: {
@@ -21,4 +21,4 @@ const schemaChecker = {
       } 
   }
   
-  module.exports = schemaChecker;
+  module.exports = SchemaChecker;
