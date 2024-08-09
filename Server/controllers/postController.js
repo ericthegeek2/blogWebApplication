@@ -22,7 +22,7 @@ const createPost = async (req,res,next) =>{
 
     
 
-    if ( !title || !category || !description) {
+    if ( !title || !category || !description.length) {
         return next(new HttpError('please fill all post fields', 422))
     }
 
@@ -48,7 +48,7 @@ const createPost = async (req,res,next) =>{
            
     
             const newPost = await prisma.post.create({
-                data: {title,category,description, image: path, userId: req.user.id}
+                data: {title,category,description, image: filename, userId: req.user.id}
             })
 
             if (!newPost) {
@@ -75,7 +75,7 @@ const createPost = async (req,res,next) =>{
                 }
             })
 
-            res.status(201).json({data: newPost})
+            res.status(201).json(newPost)
     }catch(err){
        next(new HttpError(err))
     }
@@ -89,7 +89,21 @@ const createPost = async (req,res,next) =>{
 //unprotected
 
 const getAllPosts = async (req,res,next) =>{
-    res.json('get all posts')
+    //res.json('get all posts')
+
+    try {
+        const posts = await prisma.post.findMany({
+            orderBy: {
+                updatedAt: 'desc'
+            }
+        })
+
+        res.status(200).json(posts)
+    } catch (error) {
+        return next(new HttpError(error))
+    }
+
+
 }
 
 
@@ -98,7 +112,42 @@ const getAllPosts = async (req,res,next) =>{
 //unprotected
 
 const getPost = async (req,res,next) =>{
-    res.json('get single post')
+    //res.json('get single post')
+
+    try {
+        //getting post id from params
+       
+
+        const parseId = req.ParseId
+
+        console.log(parseId)
+
+
+        const post = await prisma.post.findUnique({
+           where: {
+            id: parseId
+           },
+           select: {
+            id: true,
+            title: true,
+            description: true,
+            category: true,
+            image: true,
+            createdAt: true,
+            userId: true,
+            updatedAt: true
+           } 
+        })
+
+        if (!post) {
+            return next(new HttpError("post not found", 404))
+        }
+
+        res.json(post)
+
+    } catch (error) {
+        console.log(error)
+    }
 }
 
 
@@ -107,7 +156,41 @@ const getPost = async (req,res,next) =>{
 //unprotected
 
 const getPostsByCategory = async (req,res,next) =>{
-    res.json('get post by category')
+    //res.json('get post by category')
+
+
+
+    try {
+        const {category} = req.params
+
+        const categoryPosts = await prisma.post.findMany({
+            where: {
+                category: category
+            },
+            
+            select: {
+                title: true,
+                description: true,
+                category: true,
+                image: true,
+                createdAt: true,
+                updatedAt: true 
+            },
+            orderBy: {
+              updatedAt: 'desc'  
+            }
+        })
+
+        res.json(categoryPosts)
+
+    } 
+    catch (error) {
+        
+        return next(new HttpError(error))
+    }
+
+
+    
 }
 
 
@@ -116,7 +199,38 @@ const getPostsByCategory = async (req,res,next) =>{
 //unprotected
 
 const getUserPosts = async (req,res,next) =>{
-    res.json('get author post')
+   // res.json('get author post')
+
+   try {
+
+    const parseId = req.ParseId
+
+    console.log(parseId)
+
+    const authorPosts = await prisma.post.findMany({
+        where: {
+            userId: parseId
+        },
+        select: {
+            title: true,
+            description: true,
+            category: true,
+            image: true,
+            userId: true,
+            createdAt: true,
+            updatedAt: true 
+        },
+        orderBy: {
+            updatedAt: 'desc'
+        }
+    })
+
+
+    res.json(authorPosts)
+
+   } catch (error) {
+      return next(new HttpError(error))
+   }
 }
 
 
@@ -126,7 +240,87 @@ const getUserPosts = async (req,res,next) =>{
 //protected
 
 const editPost = async (req,res,next) =>{
-    res.json('edit post')
+    //res.json('edit post')
+
+
+    try {
+        
+        const {title,category,description} = req.body
+
+        const parseId = req.ParseId
+
+    
+       console.log(title, category, description, req.file)
+    
+
+        if ( !title || !category || !description) {
+            return next(new HttpError('please fill all post fields', 422))
+        }
+
+        
+
+    
+    
+        
+    
+        /*
+        {
+      fieldname: 'file',
+      originalname: 'blogHomeBackground.jpg',
+      encoding: '7bit',
+      mimetype: 'image/jpeg',
+      destination: 'C:\\Users\\hp\\Desktop\\BlogApp\\webApp\\Server\\uploads\\uploads',
+      filename: '1721658487850-blogHomeBackground.jpg',
+      path: 'C:\\Users\\hp\\Desktop\\BlogApp\\webApp\\Server\\uploads\\uploads\\1721658487850-blogHomeBackground.jpg',
+      size: 45586
+    }
+        
+        */
+
+      const post = await prisma.post.findUnique({
+        where: {
+            id: parseId
+        },
+        select: {
+           userId: true 
+        }
+      })
+    
+        const {fieldname, originalname, encoding, mimetype, destination, filename, path, size} = req.file
+        
+        
+       if(req.user.id === post.userId){
+        const newPost = await prisma.post.update({
+            where: {
+                id: parseId
+            },
+           data: {
+            title: title,
+            description: description,
+            category: category,
+            image: filename
+           } 
+        })
+
+        res.status(200).json(newPost)
+
+        }else{
+            return next(new HttpError('you cannot edit someone else post!!!'))
+        }
+
+
+
+        if (!newPost) {
+            return next(new HttpError("could not update post"))
+        }
+
+        
+
+    } catch (error) {
+        return next(new HttpError(error))
+    }
+
+
 }
 
 
@@ -136,7 +330,68 @@ const editPost = async (req,res,next) =>{
 //unprotected
 
 const deletePost = async (req,res,next) =>{
-    res.json('delete post')
+   // res.json('delete post')
+
+   const parseId = req.ParseId
+
+   console.log(parseId)
+
+
+
+   const post = await prisma.post.findUnique({
+    where: {
+        id: parseId
+    },
+    select: {
+       userId: true 
+    }
+  })
+
+  console.log(post)
+  
+  
+
+   if (req.user.id === post.userId) {
+      await prisma.post.delete({
+
+        where: {
+            id: parseId 
+        }
+
+      })
+
+      //update post count of author
+
+      const user = await prisma.user.findUnique({
+        where: {
+            id: req.user.id
+        },
+        select: {
+            posts: true
+        }
+      })
+
+
+      const updatePostCount = user.posts - 1
+
+      //update post count
+
+      await prisma.user.update({
+        where: {
+           id: req.user.id 
+        },
+        data: {
+           posts: updatePostCount 
+        }
+      })
+
+      res.status(200).json({msg: `deleted post ${parseId} successfully of user id ${post.userId}`})
+   }else{
+
+    return next(new HttpError('you cannot delete someone else post'))
+   }
+
+   
 }
 
 

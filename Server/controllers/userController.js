@@ -34,7 +34,10 @@ const registerUser = async (req,res,next) =>{
 
         const errors = validationResult(req);
         if (!errors.isEmpty()) {
-          return res.status(400).json({ errors: errors.array() });
+          //return res.status(400).json({ errors: errors.array() });
+          
+          console.log(errors)
+          return next(new HttpError(errors.mapped(msg)))
         }
 
 
@@ -52,6 +55,8 @@ const registerUser = async (req,res,next) =>{
 
         if (emailExists) {
             return next(new HttpError("email already exists.", 422))
+
+            //return res.json({message: "email already exists."})
         }
 
 
@@ -59,6 +64,9 @@ const registerUser = async (req,res,next) =>{
 
        if(password !== confirmPassword.trim()) {
            return next(new HttpError("passwords do not match.", 422))
+           
+           //return res.json({message: "passwords do not match."})
+
        }
 
 
@@ -73,11 +81,14 @@ const registerUser = async (req,res,next) =>{
         
          
        //populate user details to database
-        const response = await prisma.user.create({data: {name,email,password: hashedPass}})
+        const users = await prisma.user.create({data: {name,email,password: hashedPass}})
 
-        res.json(`new user ${response.email} registered`)
+        res.json(users)
     }catch(error){
        return next(new HttpError('registration failed', 422))
+
+       
+       //return res.json({message: "registration failed."})
       
     }
 
@@ -167,6 +178,8 @@ const getUser = async (req,res, next) =>{
 
         select: {
             password: false,
+            
+            id: true,
             name: true, 
             email: true,
             avatar: true, 
@@ -182,9 +195,10 @@ const getUser = async (req,res, next) =>{
         return next(new HttpError('user not found', 404))
      }
 
+    
+     //console.log(user)
 
-
-     res.json({data:user})
+     res.json(user)
 
      
    }catch(error){
@@ -200,24 +214,44 @@ const getUser = async (req,res, next) =>{
 //Post : api/users/change-avatar
 //protected
 
-const changeAvatar = (req,res) =>{
+const changeAvatar = async (req,res) =>{
 
 
     //get user details set in the jwt cookie
 
     //finish up on changing profile avatar
-
+    try{
     const activeUser = req.user
 
-    res.json({status: activeUser})
+    console.log(activeUser)
+
+    const {fieldname, originalname, encoding, mimetype, destination, filename, path, size} = req.file
+
+    const responseChangeAvatar = await prisma.user.update({
+        where: {
+            id: activeUser.id
+        },
+        data: {
+            avatar: filename
+        }
+    })
+
+    console.log(responseChangeAvatar)
+
+    if (!responseChangeAvatar) {
+        return next(new HttpError('unable to change user profile', 422))
+    }
+
+    res.status(201).json(responseChangeAvatar)
+
+
+
+   // res.json({status: activeUser})
 
     
 
-    res.send({activeUser})
-    try {
-
-
-        
+   // res.send({activeUser})
+      
     } catch (error) {
         
     }
@@ -344,6 +378,7 @@ const getAuthors = async (req,res,next) =>{
         const authors = await prisma.user.findMany({
             select: {
                 password: false,
+                id: true,
                 name: true, 
                 email: true,
                 avatar: true, 
@@ -351,7 +386,7 @@ const getAuthors = async (req,res,next) =>{
             }
         })
 
-        res.json({users: authors})
+        res.json(authors)
         
     } catch (error) {
        return next(new HttpError(error)) 

@@ -10,6 +10,7 @@ const {notFound,errorHandler} = require('./middlewares/errorWares/errorMiddlewar
 
 
 
+
 const app = express()
 
 app.use(express.json())
@@ -17,15 +18,25 @@ app.use(express.json())
 app.use(express.urlencoded({extended: true}))
 
 
-app.use(cors({credentials: true, origin: 'http://localhost:'}))
+app.use(cors({credentials: true, origin: `http://localhost:5173`}))
+
+app.use(express.static('uploads'))
 
 const port = 3001
+
+
+
+
 
 app.post('/upload', upload.single('file'), (req,res) =>{
     if (!req.file) {
         return res.send('post thumbnail not uploaded!, please attach jpeg file under 2 mb')
   
     }
+
+ 
+    
+
 
    // req.thumbnail = req.file
 
@@ -57,5 +68,18 @@ app.use(errorHandler)
 
 
 app.listen(port, () => console.log(`Example app listening on port ${port}!`))
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
